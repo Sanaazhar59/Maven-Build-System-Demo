@@ -1,0 +1,95 @@
+# ============================================================================
+# CONTINUOUS INTEGRATION (CI) WORKFLOW
+# ============================================================================
+# This workflow runs automatically on every push and pull request.
+# It demonstrates the CI concept: every code change is built, tested,
+# and verified automatically — catching bugs before they reach production.
+#
+# What it does:
+#   1. Checks out the code
+#   2. Sets up the Java environment
+#   3. Runs the full Maven build (compile → test → verify)
+#   4. Publishes test results as a check on the PR/commit
+#   5. Generates a test coverage badge for the README
+# ============================================================================
+
+name: CI
+
+# ── TRIGGERS ────────────────────────────────────────────────────────────────
+# "on" defines WHEN this workflow runs.
+on:
+  push:
+    branches: [ main, master ]      # Run on every push to main
+  pull_request:
+    branches: [ main, master ]      # Run on PRs targeting main
+
+# ── PERMISSIONS ─────────────────────────────────────────────────────────────
+# The workflow needs write access to publish test results and badges.
+permissions:
+  contents: write                   # Push coverage badge to gh-pages branch
+  checks: write                     # Publish test results as GitHub Checks
+  pull-requests: write              # Comment test summary on PRs
+
+# ── JOBS ────────────────────────────────────────────────────────────────────
+# Jobs run in parallel by default. We have one job: build-and-test.
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest          # Use a GitHub-hosted Linux runner
+
+    steps:
+      # ── Step 1: Check out the repository ──────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up Java (JDK 17) ─────────────────────────────────────
+      # This replaces manually installing Java on a build server.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'    # Eclipse Temurin (free, production-ready)
+          cache: 'maven'             # Cache ~/.m2/repository between runs
+
+      # ── Step 3: Build and run tests with coverage ─────────────────────────
+      # 'mvn clean verify' runs the full lifecycle:
+      #   clean → validate → compile → test → package → verify
+      # JaCoCo (configured in pom.xml) instruments classes and generates
+      # a coverage report at target/site/jacoco/jacoco.xml
+      - name: Build and test with Maven
+        run: mvn clean verify --batch-mode
+
+      # ── Step 4: Publish test results ──────────────────────────────────────
+      # Parses JUnit XML reports (target/surefire-reports/) and shows
+      # test results directly in the GitHub Actions UI and on PRs.
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()                 # Run even if tests fail
+        with:
+          name: Test Results
+          path: 'target/surefire-reports/*.xml'
+          reporter: java-junit
+
+      # ── Step 5: Generate coverage badge ───────────────────────────────────
+      # Reads the JaCoCo XML report and generates an SVG badge showing
+      # the coverage percentage. The badge is committed to the gh-pages
+      # branch so the README can reference it.
+      - name: Generate JaCoCo coverage badge
+        uses: cicirello/jacoco-badge-generator@v2
+        if: github.event_name == 'push'    # Only on push (not PRs)
+        with:
+          jacoco-csv-file: target/site/jacoco/jacoco.csv
+          badges-directory: .badges
+          generate-branches-badge: true     # Also show branch coverage
+
+      # ── Step 6: Publish badge to gh-pages branch ──────────────────────────
+      # Commits the generated SVG badge files to the gh-pages branch.
+      # The README references these images via a raw GitHub URL.
+      - name: Publish badge to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: github.event_name == 'push'
+        with:
+          branch: gh-pages
+          folder: .badges
+          target-folder: .badges
+          clean: false

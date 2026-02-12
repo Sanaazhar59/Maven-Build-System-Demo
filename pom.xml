@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ================================================================== -->
+    <!-- PROJECT COORDINATES (GAV - GroupId, ArtifactId, Version)            -->
+    <!-- These uniquely identify this project in the Maven ecosystem.        -->
+    <!-- ================================================================== -->
+    <groupId>com.example</groupId>
+    <artifactId>word-frequency-analyzer</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Word Frequency Analyzer</name>
+    <description>A demo project showcasing Maven build system concepts</description>
+
+    <!-- ================================================================== -->
+    <!-- PROPERTIES                                                          -->
+    <!-- Centralized configuration — change once, apply everywhere.          -->
+    <!-- ================================================================== -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <!-- Dependency versions managed in one place -->
+        <gson.version>2.11.0</gson.version>
+        <commons-csv.version>1.11.0</commons-csv.version>
+        <junit.version>5.10.3</junit.version>
+    </properties>
+
+    <!-- ================================================================== -->
+    <!-- DEPENDENCIES                                                        -->
+    <!-- Maven automatically downloads these from Maven Central,             -->
+    <!-- resolves transitive dependencies, and puts them on the classpath.   -->
+    <!-- ================================================================== -->
+    <dependencies>
+        <!-- Compile-scope: available at compile time AND runtime (default) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
+
+        <!-- Compile-scope: CSV file reading/writing -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
+        </dependency>
+
+        <!-- Test-scope: only available during testing, NOT packaged in jar -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- ================================================================== -->
+    <!-- BUILD CONFIGURATION                                                 -->
+    <!-- Plugins hook into Maven's lifecycle phases to do work.              -->
+    <!-- ================================================================== -->
+    <build>
+        <!-- Include .txt resources from src/main/resources in the jar -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering> <!-- Replace ${...} placeholders -->
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- COMPILER PLUGIN — controls javac settings -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <showWarnings>true</showWarnings>
+                </configuration>
+            </plugin>
+
+            <!-- SUREFIRE PLUGIN — runs unit tests during the 'test' phase -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+
+            <!-- JACOCO PLUGIN — measures code coverage during tests -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <!-- Instruments classes before tests run -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- Generates coverage report after tests complete -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- JAR PLUGIN — sets the Main-Class in MANIFEST.MF -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.example.wordfreq.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- ================================================================== -->
+    <!-- PROFILES                                                            -->
+    <!-- Profiles let you customize the build for different environments.    -->
+    <!-- Activate with: mvn package -P fatjar                                -->
+    <!-- ================================================================== -->
+    <profiles>
+        <!-- "fatjar" profile: bundles all dependencies into a single jar -->
+        <profile>
+            <id>fatjar</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <transformers>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <mainClass>com.example.wordfreq.App</mainClass>
+                                        </transformer>
+                                    </transformers>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

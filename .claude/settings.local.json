@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean verify:*)",
+      "Bash(mvn clean package:*)",
+      "Bash(java -jar:*)",
+      "Bash(mvn dependency:tree:*)"
+    ]
+  }
+}
